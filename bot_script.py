@@ -11,6 +11,18 @@ app = FastAPI()
 historial_chats = {}
 MAX_MENSAJES = 10
 
+# 👇 Define horarios como objetos `time` (¡muy limpio!)
+HORARIO = {
+    "lunes_viernes": {
+        "inicio": time(16, 0),   # 16:00
+        "fin": time(21, 0)       # 21:00
+    },
+    "sabado_domingo": {
+        "inicio": time(15, 30),  # 15:30
+        "fin": time(21, 30)       # 21:30
+    }
+}
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage" if TELEGRAM_TOKEN else ""
 
@@ -35,7 +47,7 @@ No alteres los enlaces. Respétalos exactamente como aparecen.
 
 info_negocio = {
     "ubicacion": "Estamos ubicados en Avenida Gabriel González Videla 3170, La Serena. También puedes encontrarnos en google maps como 'Go Waffles'.",
-    "horarios": "De lunes a viernes entre las 16:00 y 21:00. Sábado y domingo entre 15:30 y 21:30.",
+    "horarios": generar_texto_horario(),
     "promociones": "Tenemos un 15% de descuento usando el cupón PRIMERACOMPRA en gowaffles.cl",
     "canales_venta": "Puedes comprar en tu delivery app favorita (UberEats, PedidosYa o Rappi) o a través de nuestra página web gowaffles.cl",
     "carta": "Encuentra todos nuestros productos en gowaffles.cl/pedir",
@@ -49,6 +61,32 @@ info_negocio = {
     "zona_delivery":"Cada delivery app tiene su propio radio de despacho. En gowaffles.cl/local puedes ver la cobertura de despacho para las ventas de nuestro sitio web"
 }
 
+def formatear_hora(t: time) -> str:
+    """Convierte time(15, 30) → '15:30'"""
+    return t.strftime("%H:%M")
+
+def generar_texto_horario():
+    lv = HORARIO["lunes_viernes"]
+    sd = HORARIO["sabado_domingo"]
+    return (
+        f"De lunes a viernes entre las {formatear_hora(lv['inicio'])} y {formatear_hora(lv['fin'])}. "
+        f"Sábado y domingo entre {formatear_hora(sd['inicio'])} y {formatear_hora(sd['fin'])}."
+    )
+
+def esta_abierto_ahora():
+    chile_tz = pytz.timezone("America/Santiago")
+    ahora = datetime.now(chile_tz)
+    hora_actual = ahora.time()
+    dia = ahora.weekday()  # 0=lunes, 6=domingo
+
+    if dia < 5:  # lunes a viernes
+        rango = HORARIO["lunes_viernes"]
+    else:  # sábado o domingo
+        rango = HORARIO["sabado_domingo"]
+    
+    # Compara objetos time directamente
+    return rango["inicio"] <= hora_actual <= rango["fin"]
+    
 def generar_contexto(info):
     contexto = "Aquí tienes información de referencia sobre Go Waffles que puedes usar para responder:\n"
     for clave, valor in info.items():
@@ -59,11 +97,22 @@ def generar_contexto(info):
 def responder_pregunta_con_historial(historial, chat_id):
     chile_tz = pytz.timezone("America/Santiago")
     ahora = datetime.now(chile_tz)
-    hora_actual = ahora.strftime("%H:%M")
+    dia_semana = ahora.weekday()
+    hora_str = ahora.strftime("%H:%M")
     
-    # 👇 Añadimos el DÍA en español
     dias_es = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
-    dia_semana = dias_es[ahora.weekday()]
+    dia_nombre = dias_es[dia_semana]
+    
+    abierto = esta_abierto_ahora()
+    estado = "ABIERTO" if abierto else "CERRADO"
+    
+    contexto_fijo = generar_contexto(info_negocio)
+    contexto_fijo += (
+        f"\nHoy es {dia_nombre} en La Serena, Chile, y son las {hora_str}.\n"
+        f"El local está actualmente **{estado}**.\n"
+        "Si el usuario pregunta si están abiertos, responde según este estado actual. "
+        "No inventes ni supongas horarios distintos.\n"
+    )
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
