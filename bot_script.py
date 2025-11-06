@@ -8,10 +8,9 @@ import uvicorn
 
 app = FastAPI()
 
-historial_chats = {}  # {chat_id: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
-MAX_MENSAJES = 10  # Límite para no exceder tokens
+historial_chats = {}
+MAX_MENSAJES = 10
 
-# Obtenemos las variables de entorno
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage" if TELEGRAM_TOKEN else ""
 
@@ -61,6 +60,10 @@ def responder_pregunta_con_historial(historial, chat_id):
     chile_tz = pytz.timezone("America/Santiago")
     ahora = datetime.now(chile_tz)
     hora_actual = ahora.strftime("%H:%M")
+    
+    # 👇 Añadimos el DÍA en español
+    dias_es = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+    dia_semana = dias_es[ahora.weekday()]
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -68,9 +71,9 @@ def responder_pregunta_con_historial(historial, chat_id):
 
     client = OpenAI(api_key=api_key)
 
-    # Contexto fijo
+    # Contexto fijo + fecha/hora actuales
     contexto_fijo = generar_contexto(info_negocio)
-    contexto_fijo += f"\nHora actual en La Serena, Chile: {hora_actual}\n"
+    contexto_fijo += f"\nFecha y hora actual en La Serena, Chile: hoy es {dia_semana} a las {hora_actual}.\n"
 
     messages = [
         {"role": "system", "content": system_prompt + "\n\n" + contexto_fijo},
@@ -129,7 +132,7 @@ async def telegram_webhook(request: Request):
 
     return {"status": "ok"}
 
-# --- ENDPOINT WEB (para pruebas desde frontend o Postman) ---
+# --- ENDPOINT WEB ---
 @app.post("/webhook/web")
 async def web_webhook(request: Request):
     data = await request.json()
@@ -149,9 +152,8 @@ async def health_check():
         "status": "ok",
         "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
         "telegram_configured": bool(os.getenv("TELEGRAM_TOKEN")),
-        "webhook_url": "https://go-waffles-bot.up.railway.app/webhook/telegram"
+        "webhook_url": "https://bot-go-waffles.onrender.com/webhook/telegram"
     }
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
