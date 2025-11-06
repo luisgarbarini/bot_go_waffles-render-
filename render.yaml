@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: gowaffles-bot       
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot_script.py
