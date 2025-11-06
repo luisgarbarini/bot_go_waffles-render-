@@ -1,1 +1,1 @@
-web: uvicorn bot_script:app --host 0.0.0.0 --port $PORT
+web: python bot_script.py
