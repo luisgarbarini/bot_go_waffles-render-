@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 import os
 import requests
 from openai import OpenAI
+import uvicorn
 
 app = FastAPI()
 
@@ -150,3 +151,8 @@ async def health_check():
         "telegram_configured": bool(os.getenv("TELEGRAM_TOKEN")),
         "webhook_url": "https://go-waffles-bot.up.railway.app/webhook/telegram"
     }
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("bot_script:app", host="0.0.0.0", port=port)
