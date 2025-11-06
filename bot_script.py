@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 import pytz 
 from fastapi import FastAPI, Request
 import os
@@ -106,6 +106,7 @@ def responder_pregunta_con_historial(historial, chat_id):
     abierto = esta_abierto_ahora()
     estado = "ABIERTO" if abierto else "CERRADO"
     
+    # ✅ Generamos UN SOLO contexto, con la info clave
     contexto_fijo = generar_contexto(info_negocio)
     contexto_fijo += (
         f"\nHoy es {dia_nombre} en La Serena, Chile, y son las {hora_str}.\n"
@@ -119,10 +120,6 @@ def responder_pregunta_con_historial(historial, chat_id):
         return "⚠️ Ups, no tengo acceso a mi cerebro. Por favor avisa al equipo de Go Waffles."
 
     client = OpenAI(api_key=api_key)
-
-    # Contexto fijo + fecha/hora actuales
-    contexto_fijo = generar_contexto(info_negocio)
-    contexto_fijo += f"\nFecha y hora actual en La Serena, Chile: hoy es {dia_semana} a las {hora_actual}.\n"
 
     messages = [
         {"role": "system", "content": system_prompt + "\n\n" + contexto_fijo},
