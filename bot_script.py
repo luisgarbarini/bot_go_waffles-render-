@@ -26,6 +26,32 @@ HORARIO = {
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage" if TELEGRAM_TOKEN else ""
 
+def formatear_hora(t: time) -> str:
+    """Convierte time(15, 30) → '15:30'"""
+    return t.strftime("%H:%M")
+
+def generar_texto_horario():
+    lv = HORARIO["lunes_viernes"]
+    sd = HORARIO["sabado_domingo"]
+    return (
+        f"De lunes a viernes entre las {formatear_hora(lv['inicio'])} y {formatear_hora(lv['fin'])}. "
+        f"Sábado y domingo entre {formatear_hora(sd['inicio'])} y {formatear_hora(sd['fin'])}."
+    )
+
+def esta_abierto_ahora():
+    chile_tz = pytz.timezone("America/Santiago")
+    ahora = datetime.now(chile_tz)
+    hora_actual = ahora.time()
+    dia = ahora.weekday()  # 0=lunes, 6=domingo
+
+    if dia < 5:  # lunes a viernes
+        rango = HORARIO["lunes_viernes"]
+    else:  # sábado o domingo
+        rango = HORARIO["sabado_domingo"]
+    
+    # Compara objetos time directamente
+    return rango["inicio"] <= hora_actual <= rango["fin"]
+
 system_prompt = """
 Eres el asistente virtual de Go Waffles 🍓. 
 Responde solo preguntas relacionadas con el negocio usando EXCLUSIVAMENTE la información proporcionada en el contexto a continuación.
@@ -60,32 +86,6 @@ info_negocio = {
     "productos_disponibles":"La carta completa con todos los productos, ingredientes y precios está disponible exclusivamente en gowaffles.cl/pedir",
     "zona_delivery":"Cada delivery app tiene su propio radio de despacho. En gowaffles.cl/local puedes ver la cobertura de despacho para las ventas de nuestro sitio web"
 }
-
-def formatear_hora(t: time) -> str:
-    """Convierte time(15, 30) → '15:30'"""
-    return t.strftime("%H:%M")
-
-def generar_texto_horario():
-    lv = HORARIO["lunes_viernes"]
-    sd = HORARIO["sabado_domingo"]
-    return (
-        f"De lunes a viernes entre las {formatear_hora(lv['inicio'])} y {formatear_hora(lv['fin'])}. "
-        f"Sábado y domingo entre {formatear_hora(sd['inicio'])} y {formatear_hora(sd['fin'])}."
-    )
-
-def esta_abierto_ahora():
-    chile_tz = pytz.timezone("America/Santiago")
-    ahora = datetime.now(chile_tz)
-    hora_actual = ahora.time()
-    dia = ahora.weekday()  # 0=lunes, 6=domingo
-
-    if dia < 5:  # lunes a viernes
-        rango = HORARIO["lunes_viernes"]
-    else:  # sábado o domingo
-        rango = HORARIO["sabado_domingo"]
-    
-    # Compara objetos time directamente
-    return rango["inicio"] <= hora_actual <= rango["fin"]
     
 def generar_contexto(info):
     contexto = "Aquí tienes información de referencia sobre Go Waffles que puedes usar para responder:\n"
