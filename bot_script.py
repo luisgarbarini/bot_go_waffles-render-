@@ -84,7 +84,8 @@ info_negocio = {
     "redes_sociales":"Encuentranos en instagram o tiktok como @gowaffles.cl",
     "categorías":"Tenemos waffles dulces, salados y personalizados. También tenemos milkshakes, frappes, limonadas, Mini Go, helados y bebidas",
     "productos_disponibles":"La carta completa con todos los productos, ingredientes y precios está disponible exclusivamente en gowaffles.cl/pedir",
-    "zona_delivery":"Cada delivery app tiene su propio radio de despacho. En gowaffles.cl/local puedes ver la cobertura de despacho para las ventas de nuestro sitio web"
+    "zona_delivery":"Cada delivery app tiene su propio radio de despacho. En gowaffles.cl/local puedes ver la cobertura de despacho para las ventas de nuestro sitio web",
+    "funciones": "Puedo ayudarte con información sobre horarios, promociones, canales de venta, ubicación, redes sociales e incluso comunicarte con una persona si así lo deseas"
 }
     
 def generar_contexto(info):
