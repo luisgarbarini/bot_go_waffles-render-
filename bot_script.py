@@ -104,13 +104,13 @@ def responder_pregunta_con_historial(historial, chat_id):
     dia_nombre = dias_es[dia_semana]
     
     abierto = esta_abierto_ahora()
-    estado = "ABIERTO" if abierto else "CERRADO"
+    estado = "abierto" if abierto else "cerrado"
     
     # ✅ Generamos UN SOLO contexto, con la info clave
     contexto_fijo = generar_contexto(info_negocio)
     contexto_fijo += (
         f"\nHoy es {dia_nombre} en La Serena, Chile, y son las {hora_str}.\n"
-        f"El local está actualmente **{estado}**.\n"
+        f"El local está actualmente {estado}.\n"
         "Si el usuario pregunta si están abiertos, responde según este estado actual. "
         "No inventes ni supongas horarios distintos.\n"
     )
