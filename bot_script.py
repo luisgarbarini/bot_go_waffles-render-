@@ -204,6 +204,7 @@ async def web_webhook(request: Request):
 
 # --- HEALTH CHECK ---
 @app.get("/health")
+@app.head("/health") 
 async def health_check():
     return {
         "status": "ok",
