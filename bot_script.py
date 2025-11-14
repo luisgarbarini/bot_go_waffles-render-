@@ -1,12 +1,22 @@
 from datetime import datetime, time
-import pytz 
+import pytz
 from fastapi import FastAPI, Request
 import os
 import requests
 from openai import OpenAI
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware  # Importa el middleware de CORS
 
 app = FastAPI()
+
+# Agrega el middleware de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir cualquier origen (¡cuidado en producción!)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 historial_chats = {}
 MAX_MENSAJES = 10
@@ -48,12 +58,12 @@ def esta_abierto_ahora():
         rango = HORARIO["lunes_viernes"]
     else:  # sábado o domingo
         rango = HORARIO["sabado_domingo"]
-    
+
     # Compara objetos time directamente
     return rango["inicio"] <= hora_actual <= rango["fin"]
 
 system_prompt = """
-Eres el asistente virtual de Go Waffles 🍓. 
+Eres el asistente virtual de Go Waffles 🍓.
 Responde solo preguntas relacionadas con el negocio usando EXCLUSIVAMENTE la información proporcionada en el contexto a continuación.
 
 ❗ REGLAS ESTRICAS:
@@ -65,7 +75,7 @@ Responde solo preguntas relacionadas con el negocio usando EXCLUSIVAMENTE la inf
 - Si no sabes algo, di que escriba a contacto@gowaffles.cl ✉️.
 - Si ya estás en medio de una conversación (el usuario ya te ha escrito antes), NO debes saludar con "¡Hola!" ni frases de bienvenida. Ve directo al punto.
 
-✅ Tu única respuesta segura ante preguntas de productos es: 
+✅ Tu única respuesta segura ante preguntas de productos es:
 “¡Tenemos una variedad rica de waffles dulces, salados, milkshakes y más! Puedes ver todos los productos y armar tu pedido en gowaffles.cl/pedir 🧇”
 
 No alteres los enlaces. Respétalos exactamente como aparecen.
@@ -87,7 +97,7 @@ info_negocio = {
     "zona_delivery":"Cada delivery app tiene su propio radio de despacho. En gowaffles.cl/local puedes ver la cobertura de despacho para las ventas de nuestro sitio web",
     "funciones": "Puedo ayudarte con información sobre horarios, promociones, canales de venta, ubicación, redes sociales e incluso comunicarte con una persona si así lo deseas"
 }
-    
+
 def generar_contexto(info):
     contexto = "Aquí tienes información de referencia sobre Go Waffles que puedes usar para responder:\n"
     for clave, valor in info.items():
@@ -100,13 +110,13 @@ def responder_pregunta_con_historial(historial, chat_id):
     ahora = datetime.now(chile_tz)
     dia_semana = ahora.weekday()
     hora_str = ahora.strftime("%H:%M")
-    
+
     dias_es = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
     dia_nombre = dias_es[dia_semana]
-    
+
     abierto = esta_abierto_ahora()
     estado = "abierto" if abierto else "cerrado"
-    
+
     # ✅ Generamos UN SOLO contexto, con la info clave
     contexto_fijo = generar_contexto(info_negocio)
     contexto_fijo += (
@@ -158,7 +168,7 @@ async def telegram_webhook(request: Request):
 
     if chat_id not in historial_chats:
         historial_chats[chat_id] = []
-    
+
     historial_chats[chat_id].append({"role": "user", "content": mensaje})
 
     if len(historial_chats[chat_id]) > MAX_MENSAJES:
