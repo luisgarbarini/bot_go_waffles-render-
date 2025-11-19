@@ -147,7 +147,7 @@ def responder_pregunta_con_historial(historial, chat_id):
         respuesta = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            temperature=0.5,
+            temperature=0.3,
             timeout=10
         )
         return respuesta.choices[0].message.content
