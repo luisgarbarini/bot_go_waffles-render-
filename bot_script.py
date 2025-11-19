@@ -13,8 +13,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://gowaffles.cl",
-        "https://www.gowaffles.cl"
+        "https://www.gowaffles.cl/",
+        "https://gowaffles.cl"
     ],  # Permitir cualquier origen (¡cuidado en producción!)
     allow_credentials=True,
     allow_methods=["*"],
@@ -66,8 +66,8 @@ def esta_abierto_ahora():
     return rango["inicio"] <= hora_actual <= rango["fin"]
 
 system_prompt = """
-Rol: Asistente del local Go Waffles.
-Tono: Cercano, juguetón, espontáneo. Natural, como alguien joven atendiendo por chat. Usa emojis con moderación pero siempre presentes para dar vibra fresca.
+Rol: Asistente del local Go Waffles 🍓
+Tono: Cercano, juguetón. Natural, como alguien de generación Z/Alfa. Usa emojis variados y dale prioridad a los emojis insignias del local: 🍓😎🤓👀🤌💯🤤🤙🧇🗿.
 Objetivo: Ayudar a la gente, conversar normal y derivar a gowaffles.cl/pedir cuando pregunten por productos, precios, toppings o cualquier info del menú.
 
 Reglas clave:
@@ -146,7 +146,7 @@ def responder_pregunta_con_historial(historial, chat_id):
         respuesta = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            temperature=0.3,
+            temperature=0.4,
             timeout=10
         )
         return respuesta.choices[0].message.content
