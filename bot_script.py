@@ -12,7 +12,10 @@ app = FastAPI()
 # Agrega el middleware de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir cualquier origen (¡cuidado en producción!)
+    allow_origins=[
+        "https://gowaffles.cl",
+        "https://www.gowaffles.cl"
+    ],  # Permitir cualquier origen (¡cuidado en producción!)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,39 +66,42 @@ def esta_abierto_ahora():
     return rango["inicio"] <= hora_actual <= rango["fin"]
 
 system_prompt = """
-Eres el asistente virtual de Go Waffles 🍓.
-Responde solo preguntas relacionadas con el negocio usando EXCLUSIVAMENTE la información proporcionada en el contexto a continuación.
+Rol: Asistente del local Go Waffles.
+Tono: Cercano, juguetón, espontáneo. Natural, como alguien joven atendiendo por chat. Usa emojis con moderación pero siempre presentes para dar vibra fresca.
+Objetivo: Ayudar a la gente, conversar normal y derivar a gowaffles.cl/pedir cuando pregunten por productos, precios, toppings o cualquier info del menú.
 
-❗ REGLAS ESTRICAS:
-- NO inventes nombres de productos, sabores, ingredientes, toppings, waffles, milkshakes, combos o promociones.
-- Si el usuario pregunta por algo específico (ej: "¿tienen con frutilla?", "¿qué waffles tienen?", "¿recomiendas algo?"), NO menciones ejemplos ni descripciones.
-- En su lugar, responde amablemente que puede ver TODOS los productos en gowaffles.cl/pedir.
-- Si la información de referencia no contiene una lista explícita de productos o sabores, asume que NO puedes recomendar nada por nombre.
-- Usa un tono juvenil, cercano y emojis cuando quede bien 😄, pero prioriza la exactitud sobre la creatividad.
-- Si no sabes algo, di que escriba a contacto@gowaffles.cl ✉️.
-- Si ya estás en medio de una conversación (el usuario ya te ha escrito antes), NO debes saludar con "¡Hola!" ni frases de bienvenida. Ve directo al punto.
+Reglas clave:
+1. Nunca inventes productos, precios, promociones ni toppings. Si el usuario pide esa información, responde de forma natural y amistosa, pero deriva a gowaffles.cl/pedir
+2. No uses frases prearmadas. Varía tu lenguaje y mantén un tono relajado, cercano y simpático.
+3. Responde como una persona real. Frases cortas o moderadas, naturales, con variaciones. Puedes usar emojis.
+4. Si no sabes algo con certeza, dilo con honestidad. Nada de inventar datos.
+5. Contexto del negocio: Go Waffles vende waffles dulces y salados, milkshakes, helados y café. Si el usuario hace preguntas fuera de ese ámbito, igual puedes conversar de forma normal.
+6. Si ya estás en medio de una conversación (el usuario ya te ha escrito antes), NO debes saludar con "¡Hola!" ni frases de bienvenida. Ve directo al punto.
+7. No alteres los enlaces. Respétalos exactamente como aparecen.
 
-✅ Tu única respuesta segura ante preguntas de productos es:
-“¡Tenemos una variedad rica de waffles dulces, salados, milkshakes y más! Puedes ver todos los productos y armar tu pedido en gowaffles.cl/pedir 🧇”
+Comportamiento recomendado:
+Cuando te pregunten “¿cuánto vale?”, “¿qué trae?”, “¿qué opciones tienen?”, “¿qué toppings hay?”, etc.”:
+→ Responde algo del estilo: breve, amable, variado, y deriva a gowaffles.cl/pedir sin sonar repetitivo.
 
-No alteres los enlaces. Respétalos exactamente como aparecen.
+Puedes usar pequeños toques creativos para sonar más humano, pero sin inventar info del menú.
 """
 
 info_negocio = {
-    "ubicacion": "Estamos ubicados en Avenida Gabriel González Videla 3170, La Serena. También puedes encontrarnos en google maps como 'Go Waffles'.",
+    "ubicacion": "Avenida Gabriel González Videla 3170, La Serena. En Google Maps aparece como 'Go Waffles'.",
     "horarios": generar_texto_horario(),
-    "promociones": "Tenemos un 15% de descuento usando el cupón PRIMERACOMPRA en gowaffles.cl",
-    "canales_venta": "Puedes comprar en tu delivery app favorita (UberEats, PedidosYa o Rappi) o a través de nuestra página web gowaffles.cl",
-    "carta": "Encuentra todos nuestros productos en gowaffles.cl/pedir",
-    "trabajo": "Si quieres trabajar con nosotros, puedes escribir a contacto@gowaffles.cl o rellenar el formulario en gowaffles.cl/nosotros",
-    "problemas": "Si tuviste algún inconveniente con tu pedido escríbenos a contacto@gowaffles.cl",
-    "retraso": "Si quieres conocer el estado de tu pedido puedes revisarlo directamente en la plataforma en la que hiciste tu pedido (delivery app o gowaffles.cl)",
-    "ejecutivo": "Si necesitas hablar con un encargado del local, comunícate al https://wa.me/56953717707",
-    "redes_sociales":"Encuentranos en instagram o tiktok como @gowaffles.cl",
-    "categorías":"Tenemos waffles dulces, salados y personalizados. También tenemos milkshakes, frappes, limonadas, Mini Go, helados y bebidas",
-    "productos_disponibles":"La carta completa con todos los productos, ingredientes y precios está disponible exclusivamente en gowaffles.cl/pedir",
-    "zona_delivery":"Cada delivery app tiene su propio radio de despacho. En gowaffles.cl/local puedes ver la cobertura de despacho para las ventas de nuestro sitio web",
-    "funciones": "Puedo ayudarte con información sobre horarios, promociones, canales de venta, ubicación, redes sociales e incluso comunicarte con una persona si así lo deseas"
+    "promociones": "15% de descuento usando el cupón PRIMERACOMPRA en gowaffles.cl",
+    "canales_venta": "Disponibles en UberEats, PedidosYa, Rappi y en gowaffles.cl",
+    "carta": "Carta completa en gowaffles.cl/pedir",
+    "trabajo": "Postulaciones en contacto@gowaffles.cl o en gowaffles.cl/nosotros",
+    "problemas": "Contacto para problemas: contacto@gowaffles.cl",
+    "retraso": "El estado del pedido se revisa directamente en la plataforma donde fue realizado",
+    "ejecutivo": "Contacto con encargado: https://wa.me/56953717707",
+    "redes_sociales": "Instagram y TikTok como @gowaffles.cl",
+    "categorías": "Waffles dulces, salados y personalizados; milkshakes; frappes; limonadas; Mini Go; helados; café",
+    "productos_disponibles": "Carta y precios: gowaffles.cl/pedir",
+    "zona_delivery": "Cobertura depende de la delivery app. En gowaffles.cl/local está la cobertura del sitio web",
+    "estacionamiento":"Sí, fuera del local",
+    "medio_pago":"Efectivo, débito, crédito, ApplePay y GooglePay"
 }
 
 def generar_contexto(info):
@@ -141,7 +147,7 @@ def responder_pregunta_con_historial(historial, chat_id):
         respuesta = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            temperature=0.3,
+            temperature=0.5,
             timeout=10
         )
         return respuesta.choices[0].message.content
