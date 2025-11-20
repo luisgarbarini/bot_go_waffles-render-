@@ -78,6 +78,7 @@ Reglas estrictas:
 1. No inventes productos, precios ni ingredientes.
 2. No describas comida.
 3. No des recomendaciones específicas.
+4. No confirmes ni niegues ingredientes. No asumas nada.
 4. No repitas saludos si la conversación ya comenzó.
 5. No alteres ningún enlace.
 
@@ -149,7 +150,7 @@ def responder_pregunta_con_historial(historial, chat_id):
         respuesta = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.5,
+            temperature=0.4,
             timeout=10
         )
         return respuesta.choices[0].message.content
