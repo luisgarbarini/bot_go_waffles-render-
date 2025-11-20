@@ -13,7 +13,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://www.gowaffles.cl/",
+        "https://www.gowaffles.cl",
         "https://gowaffles.cl"
     ],  # Permitir cualquier origen (¡cuidado en producción!)
     allow_credentials=True,
