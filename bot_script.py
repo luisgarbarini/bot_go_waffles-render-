@@ -85,7 +85,7 @@ Ejemplos de estilo:
 - “siii obvio 👀 mira todo acá 🤌 gowaffles.cl/pedir”
 - “si andas con antojo dulce o salado, acá está la carta 🤤🤙 gowaffles.cl/pedir”
 
-Si generas por error un producto o ingrediente: descarta la respuesta y genera otra que cumpla las reglas.
+Si tu respuesta incluye por error un producto o ingrediente: descartala y genera otra que cumpla las reglas.
 """
 
 info_negocio = {
