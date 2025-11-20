@@ -211,15 +211,9 @@ async def web_webhook(request: Request):
     return {"respuesta": respuesta}
 
 # --- HEALTH CHECK ---
-@app.get("/health")
-@app.head("/health") 
+@app.head("/health")
 async def health_check():
-    return {
-        "status": "ok",
-        "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
-        "telegram_configured": bool(os.getenv("TELEGRAM_TOKEN")),
-        "webhook_url": "https://bot-go-waffles.onrender.com/webhook/telegram"
-    }
+    pass
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
