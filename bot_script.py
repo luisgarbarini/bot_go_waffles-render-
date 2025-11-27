@@ -97,7 +97,7 @@ info_negocio = {
     "trabajo": "Postulaciones en contacto@gowaffles.cl o en gowaffles.cl/nosotros",
     "problemas": "Contacto para problemas: contacto@gowaffles.cl",
     "retraso": "El estado del pedido se revisa directamente en la plataforma donde fue realizado",
-    "ejecutivo": "Contacto con encargado: https://wa.me/56953717707",
+    "persona": "Contacto con encargado: https://wa.me/56953717707",
     "redes_sociales": "Instagram y TikTok como @gowaffles.cl",
     "categorías": "Waffles dulces, salados y personalizados; milkshakes; frappes; limonadas; Mini Go; helados; café",
     "productos_disponibles": "Carta y precios: gowaffles.cl/pedir",
