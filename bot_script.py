@@ -11,8 +11,8 @@ app = FastAPI()
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
 # Define WEB_API_KEY en tus variables de entorno del servidor. 
-# Si no existe, usará la cadena por defecto (cámbiala en producción).
-WEB_API_KEY = os.getenv("WEB_API_KEY", "gw_secret_token_2024")
+
+WEB_API_KEY = os.getenv("WEB_API_KEY", "gw_secret_token_2026")
 MAX_CHARS = 500 
 
 app.add_middleware(
