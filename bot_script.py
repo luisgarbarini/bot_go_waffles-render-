@@ -13,7 +13,7 @@ from supabase import create_client
 app = FastAPI()
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
-WEB_API_KEY = os.getenv("WEB_API_KEY", "gw_secret_token_2026")
+WEB_API_KEY = os.getenv("WEB_API_KEY")
 MAX_CHARS = 500 
 
 # --- CONFIGURACIÓN SUPABASE ---
