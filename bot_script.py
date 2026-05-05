@@ -6,70 +6,103 @@ import requests
 from openai import OpenAI
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+import json
+import time as time_lib
+from supabase import create_client
 
 app = FastAPI()
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
-# Define WEB_API_KEY en tus variables de entorno del servidor. 
-
 WEB_API_KEY = os.getenv("WEB_API_KEY", "gw_secret_token_2026")
 MAX_CHARS = 500 
 
+# --- CONFIGURACIÓN SUPABASE ---
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL else None
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://chat-widget-gw.netlify.app"
-    ],
+    allow_origins=["https://chat-widget-gw.netlify.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-historial_chats = {}
-MAX_MENSAJES = 10
+# --- LÓGICA DE BASE DE DATOS (PERSISTENCIA) ---
+
+def obtener_historial_db(conversacion_id, limite=10):
+    if not supabase: return []
+    try:
+        res = supabase.table("mensajes") \
+            .select("role, mensaje") \
+            .eq("conversacion_id", conversacion_id) \
+            .order("created_at", desc=True) \
+            .limit(limite) \
+            .execute()
+        return [{"role": r["role"], "content": r["mensaje"]} for r in reversed(res.data)]
+    except Exception as e:
+        print(f"❌ Error historial: {e}")
+        return []
+
+def obtener_siguiente_orden(conversacion_id):
+    if not supabase: return 1
+    try:
+        res = supabase.table("mensajes") \
+            .select("id", count="exact") \
+            .eq("conversacion_id", conversacion_id) \
+            .execute()
+        return (res.count or 0) + 1
+    except: return 1
+
+def registrar_mensaje_db(chat_id, canal, role, texto, intent=None, t_resp=None, orden=1, conv_id=None):
+    if not supabase: return
+    tz = pytz.timezone("America/Santiago")
+    ahora = datetime.now(tz)
+    data = {
+        "chat_id": str(chat_id),
+        "conversacion_id": conv_id,
+        "canal": canal,
+        "role": role,
+        "mensaje": texto,
+        "intent": intent if role == "user" else None,
+        "timestamp": ahora.isoformat(),
+        "hora": ahora.hour,
+        "dia_semana": ahora.weekday(),
+        "es_fin_de_semana": ahora.weekday() >= 5,
+        "largo_mensaje": len(texto),
+        "orden_en_conversacion": orden,
+        "estado_local": "abierto" if esta_abierto_ahora() else "cerrado",
+        "tiempo_respuesta": t_resp
+    }
+    try:
+        supabase.table("mensajes").insert(data).execute()
+    except Exception as e: print(f"❌ Error registro: {e}")
+
+# --- CONFIGURACIÓN DEL NEGOCIO (RESTAURADA AL 100%) ---
 
 HORARIO = {
-    "lunes_viernes": {
-        "inicio": time(16, 0),
-        "fin": time(21, 0)
-    },
-    "sabado_domingo": {
-        "inicio": time(15, 30),
-        "fin": time(21, 30)
-    }
+    "lunes_viernes": {"inicio": time(16, 0), "fin": time(21, 0)},
+    "sabado_domingo": {"inicio": time(15, 30), "fin": time(21, 30)}
 }
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage" if TELEGRAM_TOKEN else ""
-
-def formatear_hora(t: time) -> str:
-    return t.strftime("%H:%M")
+def formatear_hora(t: time) -> str: return t.strftime("%H:%M")
 
 def generar_texto_horario():
-    lv = HORARIO["lunes_viernes"]
-    sd = HORARIO["sabado_domingo"]
-    return (
-        f"De lunes a viernes entre las {formatear_hora(lv['inicio'])} y {formatear_hora(lv['fin'])}. "
-        f"Sábado y domingo entre {formatear_hora(sd['inicio'])} y {formatear_hora(sd['fin'])}."
-    )
+    lv, sd = HORARIO["lunes_viernes"], HORARIO["sabado_domingo"]
+    return (f"De lunes a viernes entre las {formatear_hora(lv['inicio'])} y {formatear_hora(lv['fin'])}. "
+            f"Sábado y domingo entre {formatear_hora(sd['inicio'])} y {formatear_hora(sd['fin'])}.")
 
 def esta_abierto_ahora():
-    chile_tz = pytz.timezone("America/Santiago")
-    ahora = datetime.now(chile_tz)
-    hora_actual = ahora.time()
-    dia = ahora.weekday()
-
-    if dia < 5:
-        rango = HORARIO["lunes_viernes"]
-    else:
-        rango = HORARIO["sabado_domingo"]
-
-    return rango["inicio"] <= hora_actual <= rango["fin"]
+    tz = pytz.timezone("America/Santiago")
+    ahora = datetime.now(tz)
+    rango = HORARIO["lunes_viernes"] if ahora.weekday() < 5 else HORARIO["sabado_domingo"]
+    return rango["inicio"] <= ahora.time() <= rango["fin"]
 
 system_prompt = """
 Rol: Asistente del local Go Waffles 🍓
 Personalidad: Cercano, juguetón, joven (Gen Z/Alfa). Frases cortas o medias, cero formalidad.
-Usa emojis como 🍓😎🤓👀🤌💯🤤🤙🧇🗿. No uses 😊.
+Usa emojis como 🍓😎🤓👀🤌💯🤤🤙 waffle🗿. No uses 😊.
 
 Objetivo: ayudar y conversar a partir de la información disponible.
 Está PERMITIDA la mención de categorías: Waffles dulces, salados y personalizados. Milkshakes, frappes, helados y café.
@@ -112,108 +145,85 @@ info_negocio = {
     "medio_pago":"Efectivo, débito, crédito, ApplePay y GooglePay"
 }
 
-def generar_contexto(info):
-    contexto = "Información de referencia Go Waffles:\n"
-    for clave, valor in info.items():
-        contexto += f"- {clave}: {valor}\n"
-    return contexto
+# --- MOTOR DE RESPUESTA ---
 
-def responder_pregunta_con_historial(historial, chat_id):
-    chile_tz = pytz.timezone("America/Santiago")
-    ahora = datetime.now(chile_tz)
-    dia_semana = ahora.weekday()
-    hora_str = ahora.strftime("%H:%M")
-    dias_es = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+def responder_pregunta(mensaje_usuario, chat_id, canal, conv_id):
+    inicio_reloj = time_lib.time()
+    tz = pytz.timezone("America/Santiago")
+    ahora = datetime.now(tz)
     
-    abierto = esta_abierto_ahora()
-    estado = "abierto" if abierto else "cerrado"
+    historial = obtener_historial_db(conv_id)
+    
+    contexto_fijo = "Información de referencia Go Waffles:\n"
+    for clave, valor in info_negocio.items():
+        contexto_fijo += f"- {clave}: {valor}\n"
+    
+    estado = "abierto" if esta_abierto_ahora() else "cerrado"
+    contexto_fijo += f"\nHoy es {ahora.strftime('%A, %H:%M')} en La Serena. Estado local: {estado}.\n"
+    contexto_fijo += "Responde según este estado. No inventes horarios.\n"
+    
+    instruccion_json = "\nResponde SIEMPRE en formato JSON:\n{\"intent\": \"saludo, horario, ubicación, menú, promociones, despacho u otros\", \"respuesta\": \"tu mensaje\"}"
 
-    contexto_fijo = generar_contexto(info_negocio)
-    contexto_fijo += (
-        f"\nHoy es {dias_es[dia_semana]}, {hora_str} en La Serena. Estado local: {estado}.\n"
-        "Responde según este estado. No inventes horarios.\n"
-    )
-
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return "⚠️ Ups, hubo un problema de conexión. Avisa al equipo de Go Waffles."
-
-    client = OpenAI(api_key=api_key)
-    messages = [{"role": "system", "content": system_prompt + "\n\n" + contexto_fijo}]
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    messages = [{"role": "system", "content": system_prompt + "\n\n" + contexto_fijo + instruccion_json}]
     messages.extend(historial)
+    messages.append({"role": "user", "content": mensaje_usuario})
 
     try:
-        respuesta = client.chat.completions.create(
+        completion = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
             temperature=0.4,
-            timeout=8
+            timeout=8,
+            response_format={"type": "json_object"}
         )
-        return respuesta.choices[0].message.content
+        data_ai = json.loads(completion.choices[0].message.content)
+        intent = data_ai.get("intent", "otros")
+        texto_ai = data_ai.get("respuesta", "¡Waffle! 🧇")
+        
+        t_resp = int(time_lib.time() - inicio_reloj)
+        n_orden = obtener_siguiente_orden(conv_id)
+        
+        registrar_mensaje_db(chat_id, canal, "user", mensaje_usuario, intent=intent, orden=n_orden, conv_id=conv_id)
+        registrar_mensaje_db(chat_id, canal, "assistant", texto_ai, t_resp=t_resp, orden=n_orden+1, conv_id=conv_id)
+        
+        return texto_ai
     except Exception as e:
         print(f"❌ Error OpenAI: {e}")
         return "¡Ups! Tuve un error al pensar. ¿Me repites la pregunta? 🍓"
 
-# --- ENDPOINT TELEGRAM ---
+# --- WEBHOOKS ---
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage" if TELEGRAM_TOKEN else ""
+
 @app.post("/webhook/telegram")
 async def telegram_webhook(request: Request):
-    if not TELEGRAM_TOKEN:
-        return {"status": "error", "detalle": "Token no configurado"}
-
     data = await request.json()
     try:
-        mensaje = data["message"]["text"]
-        chat_id = data["message"]["chat"]["id"]
+        msg = data["message"]["text"][:MAX_CHARS]
+        cid = data["message"]["chat"]["id"]
+        # Conv ID por día para Telegram
+        conv_id = f"tg_{cid}_{datetime.now().strftime('%Y%m%d')}"
         
-        # Validación de longitud
-        if len(mensaje) > MAX_CHARS:
-            mensaje = mensaje[:MAX_CHARS]
-            
-    except (KeyError, TypeError):
-        return {"status": "ignored"}
-
-    if chat_id not in historial_chats:
-        historial_chats[chat_id] = []
-
-    historial_chats[chat_id].append({"role": "user", "content": mensaje})
-    historial_chats[chat_id] = historial_chats[chat_id][-MAX_MENSAJES:]
-
-    respuesta = responder_pregunta_con_historial(historial_chats[chat_id], chat_id)
-    historial_chats[chat_id].append({"role": "assistant", "content": respuesta})
-
-    try:
-        requests.post(TELEGRAM_URL, json={"chat_id": chat_id, "text": respuesta}, timeout=5)
-    except Exception as e:
-        print(f"❌ Error Telegram: {e}")
-
+        res = responder_pregunta(msg, cid, "telegram", conv_id)
+        requests.post(TELEGRAM_URL, json={"chat_id": cid, "text": res}, timeout=5)
+    except: pass
     return {"status": "ok"}
 
-# --- ENDPOINT WEB ---
 @app.post("/webhook/web")
 async def web_webhook(request: Request, x_api_key: str = Header(None)):
-    # Validación de seguridad vía Header
-    if x_api_key != WEB_API_KEY:
-        raise HTTPException(status_code=403, detail="No autorizado")
-
+    if x_api_key != WEB_API_KEY: raise HTTPException(status_code=403)
     data = await request.json()
-    mensaje = data.get("mensaje", "")
-
-    if not mensaje:
-        return {"respuesta": "¡Hola! ¿En qué puedo ayudarte? 🍓"}
+    msg = data.get("mensaje", "")[:MAX_CHARS]
+    session_id = data.get("session_id", "web_anon")
+    conv_id = f"web_{session_id}"
     
-    if len(mensaje) > MAX_CHARS:
-        mensaje = mensaje[:MAX_CHARS]
+    res = responder_pregunta(msg, session_id, "web", conv_id)
+    return {"respuesta": res}
 
-    # Para la web usamos un historial simple de un solo turno o podrías implementar IDs de sesión
-    respuesta = responder_pregunta_con_historial([{"role": "user", "content": mensaje}], chat_id="web_user")
-    return {"respuesta": respuesta}
-
-# --- HEALTH CHECK ---
-@app.head("/health")
 @app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+async def health(): return {"status": "ok"}
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("bot_script:app", host="0.0.0.0", port=port)
+    uvicorn.run("bot_script:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
