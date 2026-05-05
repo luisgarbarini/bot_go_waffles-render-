@@ -5,3 +5,4 @@ openai
 pytz
 fuzzywuzzy
 python-levenshtein
+supabase
