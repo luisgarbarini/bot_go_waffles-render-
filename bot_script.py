@@ -162,7 +162,7 @@ def responder_pregunta(mensaje_usuario, chat_id, canal, conv_id):
     contexto_fijo += f"\nHoy es {ahora.strftime('%A, %H:%M')} en La Serena. Estado local: {estado}.\n"
     contexto_fijo += "Responde según este estado. No inventes horarios.\n"
     
-    instruccion_json = "\nResponde SIEMPRE en formato JSON:\n{\"intent\": \"saludo, horario, ubicación, menú, promociones, despacho u otros\", \"respuesta\": \"tu mensaje\"}"
+    instruccion_json = "\nResponde SIEMPRE en formato JSON:\n{\"intent\": \"saludo, horario, ubicación, menú, compra, promociones, asistencia_humana, despacho u otros\", \"respuesta\": \"tu mensaje\"}"
 
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     messages = [{"role": "system", "content": system_prompt + "\n\n" + contexto_fijo + instruccion_json}]
