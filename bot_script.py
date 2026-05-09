@@ -23,7 +23,11 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL else None
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://chat-widget-gw.netlify.app"],
+    allow_origins=[
+    "https://chat-widget-gw.netlify.app",
+    "https://chat.gowaffles.cl",
+    "https://gowaffles.cl",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
