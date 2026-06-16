@@ -226,8 +226,9 @@ async def web_webhook(request: Request, x_api_key: str = Header(None)):
     res = responder_pregunta(msg, session_id, "web", conv_id)
     return {"respuesta": res}
 
-@app.get("/health")
-async def health(): return {"status": "ok"}
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     uvicorn.run("bot_script:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
