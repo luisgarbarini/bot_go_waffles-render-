@@ -86,7 +86,7 @@ def registrar_mensaje_db(chat_id, canal, role, texto, intent=None, t_resp=None, 
 # --- CONFIGURACIÓN DEL NEGOCIO (RESTAURADA AL 100%) ---
 
 HORARIO = {
-    "lunes_viernes": {"inicio": time(16, 0), "fin": time(21, 0)},
+    "lunes_viernes": {"inicio": time(14, 30), "fin": time(20, 30)},
     "sabado_domingo": {"inicio": time(15, 30), "fin": time(21, 30)}
 }
 
